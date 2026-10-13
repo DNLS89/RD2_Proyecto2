@@ -1,4 +1,4 @@
-# FW (XelajuNetwork). Ver configuraciones.md, sección 7.1.
+# FW (XelajuNetwork). 
 
 source /etc/network/interfaces.d/*
 
