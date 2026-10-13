@@ -134,46 +134,8 @@ El perfil antiguo `Wired connection 1` se configuró para no conectarse automát
 sudo nmcli connection modify "Wired connection 1" connection.autoconnect no
 ```
 
-## 4. Recuperación de conectividad y SSH
 
-Después del cambio de adaptador, se recuperó la conexión entre el PROXY y el firewall.
-
-Prueba realizada:
-
-```bash
-ping -c 3 10.10.0.5
-```
-
-Resultado: 3 paquetes enviados, 3 recibidos y 0 % de pérdida.
-
-Se inició SSH y se comprobó que el servidor escucha en el puerto 22:
-
-```bash
-sudo systemctl start ssh
-sudo systemctl status ssh --no-pager
-sudo ss -lntp | grep ':22 '
-```
-
-La salida mostró `ssh.service` activo y `sshd` escuchando en `0.0.0.0:22` y `[::]:22`.
-
-El acceso SSH con el usuario `soporte-fw` y su clave se probó. Desde la sesión remota se realizaron los cambios correspondientes a las referencias de la interfaz antigua en la configuración de TPROXY.
-
-Para revisar el estado actual:
-
-```bash
-systemctl is-active ssh
-systemctl is-enabled ssh
-sudo ss -lntp | grep ':22 '
-```
-
-Si SSH continúa como `disabled`, habilitar el inicio automático:
-
-```bash
-sudo systemctl enable ssh
-```
-
-
-## 5. ACL y listas de bloqueo de Squid
+## 4. ACL y listas de bloqueo de Squid
 
 Archivo principal:
 
@@ -251,7 +213,7 @@ Para validar la configuración:
 sudo squid -k parse
 ```
 
-## 6. Puertos y TPROXY
+## 5. Puertos y TPROXY
 
 Configuración relevante de `/etc/squid/squid.conf`:
 
@@ -277,7 +239,7 @@ sudo squid -k parse
 sudo ss -lntp | grep -E ':(3128|3129)\b'
 ```
 
-## 7. Reglas nftables
+## 6. Reglas nftables
 
 Archivo del proyecto:
 
@@ -316,7 +278,7 @@ La regla actual no contiene una exclusión explícita para destinos internos. Si
 
 No ejecutar `nft flush ruleset` ni modificar `/etc/nftables.conf` sin revisar las reglas de Docker y Tailscale.
 
-## 8. Enrutamiento por políticas
+## 7. Enrutamiento por políticas
 
 Tablas del proyecto:
 
@@ -343,7 +305,7 @@ ip -4 route show table 100
 ip -4 route show table 101
 ```
 
-## 9. Scripts de activación y desactivación de TPROXY
+## 8. Scripts de activación y desactivación de TPROXY
 
 Archivos:
 
@@ -358,7 +320,7 @@ Ambos scripts se crearon con permisos `root:root`, modo `750`.
 
 El script `xelajunetwork-tproxy-on` comprueba las IP de las interfaces, crea las rutas de las tablas 100 y 101, agrega las reglas de política, carga la tabla nftables del proyecto e inicia Squid.
 
-El script original contenía referencias a `enx9c69d3101d16`. Después del cambio de adaptador, se actualizaron las referencias correspondientes desde la sesión SSH para utilizar `enx00e04c3603e7`.
+El script original contenía referencias a `enx9c69d3101d16`. Después del cambio de adaptador, se actualizaron las referencias correspondientes para utilizar `enx00e04c3603e7`.
 
 La interfaz hacia R2 sigue siendo `enp0s31f6`.
 
@@ -396,7 +358,7 @@ sudo grep -nH 'enx00e04c3603e7' \
 ```
 
 
-## 10. Persistencia y sysctl
+## 9. Persistencia y sysctl
 
 Archivo:
 
@@ -430,7 +392,7 @@ No modificar los valores sin revisar el diseño de TPROXY y la configuración pe
 
 El archivo `/etc/nftables.conf` contiene una configuración base con `flush ruleset`. El servicio `nftables` está habilitado y activo.
 
-## 11. Consideraciones de Multi-WAN y NAT
+## 10. Consideraciones de Multi-WAN y NAT
 
 Squid genera conexiones salientes propias. La configuración utiliza `10.10.0.6` como dirección de origen y el script dirige ese tráfico mediante la tabla 101, con gateway `10.10.0.5`.
 
@@ -440,7 +402,7 @@ No se ha configurado NAT/MASQUERADE en el PROXY.
 
 La regla TPROXY selecciona tráfico HTTP TCP/80.
 
-## 12. Logging de Squid
+## 11. Logging de Squid
 
 Formato configurado en `/etc/squid/squid.conf`:
 
@@ -488,7 +450,7 @@ sudo tail -n 20 /var/log/squid/access.log
 sudo tail -n 20 /var/log/squid/cache.log
 ```
 
-## 13. Portal administrativo Flask
+## 12. Portal administrativo Flask
 
 Ubicación del proyecto:
 
@@ -522,7 +484,7 @@ http://10.10.0.6:8080/
 ```
 
 
-## 14. Servicio systemd del portal
+## 13. Servicio systemd del portal
 
 Archivo:
 
@@ -565,7 +527,7 @@ Para detenerlo:
 sudo systemctl stop squid-portal
 ```
 
-## 15. Comandos de integración
+## 14. Comandos de integración
 
 ### Antes de activar TPROXY
 
@@ -650,7 +612,7 @@ ip -4 rule show
 ```
 
 
-## 16. Pruebas de las ACL desde los clientes
+## 15. Pruebas de las ACL desde los clientes
 
 Desde PC-USER01, en VLAN 20:
 
@@ -695,7 +657,7 @@ sudo squid -k parse && sudo squid -k reconfigure
 
 Repetir la prueba para confirmar que el acceso vuelve a estar permitido.
 
-## 17. Estado actual y pendientes
+## 16. Estado actual y pendientes
 
 ### Cambios realizados y comprobados
 
@@ -714,27 +676,8 @@ Interfaz hacia R2           → enp0s31f6
 Interfaz nueva hacia FW     → enx00e04c3603e7
 IP del enlace hacia FW      → 10.10.0.6/30
 Ping a FW                   → comprobado, 0 % de pérdida
-Servidor SSH                → activo y puerto 22 escuchando
-Acceso SSH                  → probado
-Referencias de TPROXY       → cambios realizados desde SSH
+Referencias de TPROXY       → cambios realizados
 NAT/MASQUERADE en PROXY     → no configurado
 SSL Bump                    → no configurado
 Interceptación HTTPS        → no configurada
 ```
-
-### Pendiente de verificar
-
-```text
-Validación de scripts TPROXY después del cambio
-Referencias antiguas restantes en los archivos
-Interacción entre las reglas de NetworkManager y las del script
-Inicio automático de SSH
-Conectividad PROXY ↔ R2
-Interceptación HTTP desde VLAN 10 y VLAN 20
-ACL y blacklists durante la integración
-Logging desde las VLAN
-Acceso al portal desde Administración
-Tráfico no HTTP
-Salida a Internet y funcionamiento conjunto con Multi-WAN
-```
-
