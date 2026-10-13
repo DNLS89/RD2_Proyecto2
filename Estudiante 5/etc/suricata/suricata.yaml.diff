@@ -1,0 +1,26 @@
+18c18
+<     HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+---
+>     HOME_NET: "[10.10.0.0/16,10.200.0.0/16]"
+622c622,632
+<   - interface: eth0
+---
+>   # FW: interfaz DMZ y interfaz interna (las dos primeras entradas, añadidas),
+>   # e interfaz WAN (la entrada original, que conserva sus opciones).
+>   - interface: enx00e04c3604ff
+>     cluster-id: 97
+>     cluster-type: cluster_flow
+>     defrag: yes
+>   - interface: enx00e04c360188
+>     cluster-id: 98
+>     cluster-type: cluster_flow
+>     defrag: yes
+>   - interface: enp3s0
+2196c2206
+< default-rule-path: /var/lib/suricata/rules
+---
+> default-rule-path: /etc/suricata/rules
+2199c2209
+<   - suricata.rules
+---
+>   - local.rules

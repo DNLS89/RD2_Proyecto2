@@ -1,0 +1,37 @@
+# FW (XelajuNetwork). Ver configuraciones.md, sección 7.1.
+
+source /etc/network/interfaces.d/*
+
+auto lo
+iface lo inet loopback
+
+# Gestión: Wi-Fi con Internet propia del equipo (no forma parte de la topología).
+allow-hotplug wlp4s0
+iface wlp4s0 inet dhcp
+    wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+
+# WAN: hacia R-EDGE (10.10.0.1). Sin "gateway": la salida del tráfico
+# reenviado está en la tabla 100 (fw-rutas.sh).
+allow-hotplug enp3s0
+iface enp3s0 inet static
+    address 10.10.0.2/30
+    up /usr/local/sbin/fw-rutas.sh
+
+# Interna: hacia PROXY (10.10.0.6).
+allow-hotplug enx00e04c360188
+iface enx00e04c360188 inet static
+    address 10.10.0.5/30
+    up ip route replace 10.10.0.8/30  via 10.10.0.6
+    up ip route replace 10.10.10.0/27 via 10.10.0.6
+    up ip route replace 10.10.20.0/25 via 10.10.0.6
+    up ip route replace 10.10.30.0/28 via 10.10.0.6
+    up ip route replace 10.10.40.0/27 via 10.10.0.6
+    up /usr/local/sbin/fw-rutas.sh
+
+# DMZ: VPN-SRV (10.10.50.2) y servidores web.
+allow-hotplug enx00e04c3604ff
+iface enx00e04c3604ff inet static
+    address 10.10.50.1/28
+    up ip route replace 10.200.10.0/28 via 10.10.50.2
+    up ip route replace 10.200.20.0/27 via 10.10.50.2
+    up /usr/local/sbin/fw-rutas.sh
